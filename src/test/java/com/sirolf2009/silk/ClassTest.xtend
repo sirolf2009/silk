@@ -4,6 +4,7 @@ import org.junit.Test
 import org.parboiled.Parboiled
 
 import static extension com.sirolf2009.silk.ParserUtil.*
+import org.junit.Assert
 
 class ClassTest {
 	
@@ -28,4 +29,13 @@ class ClassTest {
 		'''.parse(parser.Class)
 		mapper.map(parser, result.parseTreeRoot)
 	}
+	
+	@Test
+	def void testPackage() {
+		val result = '''
+		package com.sirolf2009.silk.example
+		'''.parse(parser.PackageDeclaration)
+		Assert.assertEquals(#[#["com", "sirolf2009", "silk", "example"]], result.valueStack.toList)
+	}
+	
 }

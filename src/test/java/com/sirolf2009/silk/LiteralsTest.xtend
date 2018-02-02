@@ -22,7 +22,7 @@ class LiteralsTest {
 
 	@Test
 	def void testSymbol() {
-		Assert.assertEquals("Hello World", '''"Hello World"'''.parse(parser.LiteralString).resultValue)
+		Assert.assertEquals("ThisIsASymbol", '''ThisIsASymbol'''.parse(parser.Symbol).resultValue)
 	}
 
 }

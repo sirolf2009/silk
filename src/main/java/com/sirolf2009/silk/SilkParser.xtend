@@ -8,9 +8,17 @@ import org.parboiled.annotations.SuppressNode
 import org.parboiled.annotations.SuppressSubnodes
 import org.parboiled.Action
 import org.parboiled.Context
+import java.util.ArrayList
 
 @BuildParseTree
 class SilkParser extends BaseParser<Object> {
+
+	protected static val printValueStack = new Action<Object>() {
+		override run(Context<Object> context) {
+			println("Head: " + context.valueStack.peek + " " + context.valueStack.toList)
+			return true
+		}
+	}
 
 	def Rule Class() {
 		return Sequence(
@@ -25,6 +33,28 @@ class SilkParser extends BaseParser<Object> {
 			DEDENT,
 			EOI
 		)
+	}
+
+	def Rule PackageDeclaration() {
+		val packageList = new ArrayList()
+		val addToList = new Action<Object>() {
+			override run(Context<Object> context) {
+				packageList.add(pop)
+			}
+		}
+		return Sequence(Sequence(PACKAGE.suppressNode, Sequence(
+			Symbol(),
+			addToList,
+			ZeroOrMore(
+				Sequence(Ch('.'), Symbol(), addToList)
+			)
+		)), push(packageList))
+	}
+
+	def Rule Test() {
+		return Sequence(ZeroOrMore(
+			Sequence(Ch('.'), Symbol())
+		), push(context.valueStack.toList.reverse))
 	}
 
 	def Rule FunctionDeclaration() {
@@ -72,9 +102,7 @@ class SilkParser extends BaseParser<Object> {
 	}
 
 	def Rule Expression() {
-		return FirstOf(
-		Sequence(Literal, TestNot(Sequence(Spacing, Operator))),
-		Sequence(Literal, Spacing, Operator, Spacing, Literal))
+		return FirstOf(Sequence(Literal, TestNot(Sequence(Spacing, Operator))), Sequence(Literal, Spacing, Operator, Spacing, Literal))
 	}
 
 	def Rule Operator() {
@@ -87,10 +115,6 @@ class SilkParser extends BaseParser<Object> {
 
 	def Rule EOL() {
 		return Ch('\n')
-	}
-
-	def Rule PackageDeclaration() {
-		return Sequence(PACKAGE.suppressNode, Sequence(Symbol(), ZeroOrMore(Sequence(Ch('.'), Symbol())).suppressNode))
 	}
 
 	def Rule Type() {
@@ -131,7 +155,7 @@ class SilkParser extends BaseParser<Object> {
 
 	@SuppressSubnodes
 	def Rule Symbol() {
-		return Sequence(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z')), OneOrMore(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z'), CharRange('0', '9'))), push(match))
+		return Sequence(Sequence(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z')), OneOrMore(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z'), CharRange('0', '9')))).suppressNode, push(match))
 	}
 
 	@SuppressNode
@@ -152,6 +176,15 @@ class SilkParser extends BaseParser<Object> {
 	@DontLabel
 	def Rule Terminal(String string) {
 		return Sequence(string, Spacing()).label('\'' + string + '\'');
+	}
+
+	def static Action<Object> popAction(int down) {
+		return new Action<Object>() {
+			override run(Context<Object> context) {
+				println("Popped: " + context.valueStack.pop(down))
+				return true
+			}
+		}
 	}
 
 }
