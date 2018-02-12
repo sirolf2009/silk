@@ -30,7 +30,7 @@ class FunctionsTest {
 	def void testArguments() {
 		'''()'''.parse(parser.Arguments)
 		'''(String message)'''.parse(parser.Arguments)
-		'''(String message, int count)'''.parse(parser.Arguments)
+		'''(String message2, int count)'''.parse(parser.Arguments)
 	}
 	
 }

@@ -13,6 +13,7 @@ class ParserUtil {
 	def static parse(CharSequence input, Rule rule) {
 		val result = new ReportingParseRunner(rule).run(new IndentDedentInputBuffer(input.toString().trim().toCharArray, 2, ";", true))
 		println(ParseTreeUtils.printNodeTree(result))
+		println("Result: "+result.resultValue.toString)
 		result.parseErrors.forEach [
 			val position = result.inputBuffer.getPosition(startIndex)
 			if(it instanceof InvalidInputError) {

@@ -1,5 +1,8 @@
 package com.sirolf2009.silk
 
+import com.sirolf2009.silk.ast.literal.LiteralInteger
+import com.sirolf2009.silk.ast.literal.LiteralString
+import com.sirolf2009.silk.ast.literal.LiteralSymbol
 import org.junit.Assert
 import org.junit.Test
 import org.parboiled.Parboiled
@@ -12,17 +15,18 @@ class LiteralsTest {
 
 	@Test
 	def void testNumber() {
-		Assert.assertEquals(0, "0".parse(parser.Number).resultValue)
+		Assert.assertEquals(new LiteralInteger(0), "0".parse(parser.Number).resultValue)
+		Assert.assertEquals(new LiteralInteger(12), "12".parse(parser.Number).resultValue)
 	}
 
 	@Test
 	def void testString() {
-		Assert.assertEquals("Hello World", '''"Hello World"'''.parse(parser.LiteralString).resultValue)
+		Assert.assertEquals(new LiteralString("Hello World"), '''"Hello World"'''.parse(parser.LiteralString).resultValue)
 	}
 
 	@Test
 	def void testSymbol() {
-		Assert.assertEquals("ThisIsASymbol", '''ThisIsASymbol'''.parse(parser.Symbol).resultValue)
+		Assert.assertEquals(new LiteralSymbol(new Symbol("ThisIsASymbol")), '''ThisIsASymbol'''.parse(parser.Symbol).resultValue)
 	}
 
 }

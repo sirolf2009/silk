@@ -9,6 +9,14 @@ import org.parboiled.annotations.SuppressSubnodes
 import org.parboiled.Action
 import org.parboiled.Context
 import java.util.ArrayList
+import com.sirolf2009.silk.ast.literal.LiteralString
+import com.sirolf2009.silk.ast.literal.LiteralInteger
+import com.sirolf2009.silk.ast.literal.LiteralSymbol
+import com.sirolf2009.silk.ast.operator.OperatorPlus
+import java.util.function.Consumer
+import com.sirolf2009.silk.ast.BinaryExpression
+import com.sirolf2009.silk.ast.operator.BinaryOperator
+import com.sirolf2009.silk.ast.Expression
 
 @BuildParseTree
 class SilkParser extends BaseParser<Object> {
@@ -51,12 +59,6 @@ class SilkParser extends BaseParser<Object> {
 		)), push(packageList))
 	}
 
-	def Rule Test() {
-		return Sequence(ZeroOrMore(
-			Sequence(Ch('.'), Symbol())
-		), push(context.valueStack.toList.reverse))
-	}
-
 	def Rule FunctionDeclaration() {
 		return Sequence(
 			FUNCTION,
@@ -71,13 +73,23 @@ class SilkParser extends BaseParser<Object> {
 	}
 
 	def Rule Arguments() {
+		val argumentList = new ArrayList()
+		val addToList = new Action<Object>() {
+			override run(Context<Object> context) {
+				val a = pop
+				val b = pop
+				argumentList.add(b -> a)
+			}
+		}
 		return Sequence(
 			Ch('(').suppressNode,
 			Optional(
 				Sequence(Type, Spacing, Symbol),
-				ZeroOrMore(Sequence(Ch(',').suppressNode, Spacing, Type, Spacing, Symbol))
+				push(pop -> pop),
+				ZeroOrMore(Sequence(Ch(',').suppressNode, Spacing, Type, Spacing, Symbol, addToList))
 			),
-			Ch(')').suppressNode
+			Ch(')').suppressNode,
+			push(argumentList)
 		)
 	}
 
@@ -102,11 +114,17 @@ class SilkParser extends BaseParser<Object> {
 	}
 
 	def Rule Expression() {
-		return FirstOf(Sequence(Literal, TestNot(Sequence(Spacing, Operator))), Sequence(Literal, Spacing, Operator, Spacing, Literal))
+		return FirstOf(Sequence(Literal, TestNot(Sequence(Spacing, Operator))), 
+			Sequence(Literal, Spacing, Operator, Spacing, Literal, action[valueStack.push(new BinaryExpression(valueStack.pop as Expression<?>, valueStack.pop as BinaryOperator<?, ?, ?>, valueStack.pop as Expression<?>))]))
 	}
 
 	def Rule Operator() {
-		return FirstOf(PLUS, MINUS, MULTIPLY, DIVIDE)
+		return FirstOf(
+			Sequence(PLUS, action[valueStack.push(new OperatorPlus())]),
+			MINUS,
+			MULTIPLY,
+			DIVIDE
+		)
 	}
 
 	def Rule EmptyLine() {
@@ -145,17 +163,17 @@ class SilkParser extends BaseParser<Object> {
 
 	@SuppressSubnodes
 	def Rule LiteralString() {
-		return Sequence(Ch('"'), Sequence(ZeroOrMore(TestNot(AnyOf("\r\n\"\\")), ANY).suppressSubnodes(), push(0, match)), Ch('"'))
+		return Sequence(Ch('"'), Sequence(ZeroOrMore(TestNot(AnyOf("\r\n\"\\")), ANY).suppressSubnodes(), action[valueStack.push(new LiteralString(getMatch()))], Ch('"')))
 	}
 
 	@SuppressSubnodes
 	def Rule Number() {
-		return OneOrMore(CharRange('0', '9'), push(Integer.parseInt(match)))
+		return Sequence(OneOrMore(CharRange('0', '9')), action[valueStack.push(new LiteralInteger(Integer.parseInt(it.getMatch())))])
 	}
 
 	@SuppressSubnodes
 	def Rule Symbol() {
-		return Sequence(Sequence(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z')), OneOrMore(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z'), CharRange('0', '9')))).suppressNode, push(match))
+		return Sequence(Sequence(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z')), OneOrMore(FirstOf(CharRange('a', 'z'), CharRange('A', 'Z'), CharRange('0', '9')))).suppressNode, action[valueStack.push(new LiteralSymbol(new Symbol(it.match)))])
 	}
 
 	@SuppressNode
@@ -176,6 +194,15 @@ class SilkParser extends BaseParser<Object> {
 	@DontLabel
 	def Rule Terminal(String string) {
 		return Sequence(string, Spacing()).label('\'' + string + '\'');
+	}
+	
+	def static action(Consumer<Context<Object>> action) {
+		return new Action<Object>() {
+			override run(Context<Object> context) {
+				action.accept(context)
+				return true
+			}
+		}
 	}
 
 	def static Action<Object> popAction(int down) {

@@ -9,7 +9,7 @@ import org.junit.Assert
 class ClassTest {
 	
 	val parser = Parboiled.createParser(SilkParser)
-	val mapper = new SilkMapper()
+	val mapper = new SilkMapper(parser)
 	
 	@Test
 	def void testClass() {
@@ -27,7 +27,7 @@ class ClassTest {
 				val example = new Example
 				example.helloWorld
 		'''.parse(parser.Class)
-		mapper.map(parser, result.parseTreeRoot)
+		mapper.map(result.parseTreeRoot)
 	}
 	
 	@Test
