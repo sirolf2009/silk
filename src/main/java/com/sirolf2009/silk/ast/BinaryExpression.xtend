@@ -1,17 +1,20 @@
 package com.sirolf2009.silk.ast
 
-import org.eclipse.xtend.lib.annotations.Data
-import com.sirolf2009.silk.Scope
-import com.sirolf2009.silk.ast.operator.BinaryOperator
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 
-@Data class BinaryExpression<A, B, C> implements Expression<C> {
+interface BinaryExpression<A, B, C> extends Expression<C> {
 	
-	val Expression<A> left
-	val BinaryOperator<A, B, C> operator
-	val Expression<B> right
+	def Type getLeftType() {
+		return (class.genericSuperclass as ParameterizedType).actualTypeArguments.get(0)
+	}
 	
-	override eval(Scope scope) {
-		return operator.eval(scope, left.eval(scope), right.eval(scope))
+	def Type getRightType() {
+		return (class.genericSuperclass as ParameterizedType).actualTypeArguments.get(1)
+	}
+	
+	override Type getType() {
+		return (class.genericSuperclass as ParameterizedType).actualTypeArguments.get(2)
 	}
 	
 }

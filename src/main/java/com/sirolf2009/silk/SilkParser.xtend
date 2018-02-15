@@ -1,22 +1,20 @@
 package com.sirolf2009.silk
 
+import com.sirolf2009.silk.ast.BinaryExpression
+import com.sirolf2009.silk.ast.Expression
+import com.sirolf2009.silk.ast.literal.LiteralInteger
+import com.sirolf2009.silk.ast.literal.LiteralString
+import com.sirolf2009.silk.ast.literal.LiteralSymbol
+import java.util.ArrayList
+import java.util.function.Consumer
+import org.parboiled.Action
 import org.parboiled.BaseParser
+import org.parboiled.Context
 import org.parboiled.Rule
 import org.parboiled.annotations.BuildParseTree
 import org.parboiled.annotations.DontLabel
 import org.parboiled.annotations.SuppressNode
 import org.parboiled.annotations.SuppressSubnodes
-import org.parboiled.Action
-import org.parboiled.Context
-import java.util.ArrayList
-import com.sirolf2009.silk.ast.literal.LiteralString
-import com.sirolf2009.silk.ast.literal.LiteralInteger
-import com.sirolf2009.silk.ast.literal.LiteralSymbol
-import com.sirolf2009.silk.ast.operator.OperatorPlus
-import java.util.function.Consumer
-import com.sirolf2009.silk.ast.BinaryExpression
-import com.sirolf2009.silk.ast.operator.BinaryOperator
-import com.sirolf2009.silk.ast.Expression
 
 @BuildParseTree
 class SilkParser extends BaseParser<Object> {
@@ -115,12 +113,30 @@ class SilkParser extends BaseParser<Object> {
 
 	def Rule Expression() {
 		return FirstOf(Sequence(Literal, TestNot(Sequence(Spacing, Operator))), 
-			Sequence(Literal, Spacing, Operator, Spacing, Literal, action[valueStack.push(new BinaryExpression(valueStack.pop as Expression<?>, valueStack.pop as BinaryOperator<?, ?, ?>, valueStack.pop as Expression<?>))]))
+			Sequence(Literal, Spacing, Operator, Spacing, Literal, action[
+				val right = valueStack.pop as Expression<?>
+				val operator = valueStack.pop as String
+				val left = valueStack.pop as Expression<?>
+				if(left instanceof Number) {
+					
+				} else {
+					val method = left.type.class.methods.findFirst[name.equals(operator) && parameters.size == 1 && parameters.get(0).type == right.type]
+					if(method !== null) {
+						valueStack.push(new BinaryExpression() {
+							override eval(Scope scope) {
+								return method.invoke(left.eval(scope), right.eval(scope))
+							}
+						})
+					} else {
+						throw new IllegalArgumentException("")
+					}
+				}
+			]))
 	}
 
 	def Rule Operator() {
 		return FirstOf(
-			Sequence(PLUS, action[valueStack.push(new OperatorPlus())]),
+			PLUS,
 			MINUS,
 			MULTIPLY,
 			DIVIDE
